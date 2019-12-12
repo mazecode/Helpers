@@ -1,0 +1,1 @@
+version: '3'services:  app:    build:      context: .      dockerfile: .docker/Dockerfile    image: php-docker    ports:      - 8080:80    volumes:      - .:/www/siga-helpers    environment:      PHP_EXTENSION_XDEBUG: 1

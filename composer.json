@@ -1,0 +1,37 @@
+{
+  "name": "mazecode/helpers",
+  "description": "Custom Helpers Package",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Mazecode",
+      "email": "diego.feliud@gmail.com"
+    }
+  ],
+  "version": "1.0.5",
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "require": {
+    "php": ">=7.1",
+    "ext-mbstring": "*",
+    "ext-openssl": "*",
+    "nesbot/carbon": "^2.27"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^7.5"
+  },
+  "autoload": {
+    "psr-4": {
+      "Siga98\\Helpers\\": "src/app/Helpers"
+    },
+    "files": [
+      "src/helpers.php"
+    ]
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Siga98\\Helpers\\Test\\": "src/tests/"
+    }
+  }
+}

@@ -3,18 +3,18 @@
 namespace Siga98\Helpers;
 
 use Carbon\Carbon;
-use DateTime;
 use Exception;
 
-class CryptoHelper
+final class CryptoHelper
 {
     private static $secretKey = 'This1sm4s3cr3Tk34';
-    private static $secretIv  = 'This1sm4s3cr3T1V';
+
+    private static $secretIv = 'This1sm4s3cr3T1V';
 
     private static $encryptMethod = 'AES-256-CBC';
 
     /**
-     * IV - encrypt method AES-256-CBC expects 16 bytes - else you will get a warning
+     * IV - encrypt method AES-256-CBC expects 16 bytes - else you will get a warning.
      *
      * @param $hash
      *
@@ -23,13 +23,11 @@ class CryptoHelper
     public static function encrypt(string $hash): string
     {
         // hash
-        $key = hash('sha256', self::$secretKey);
+        $key = \hash('sha256', self::$secretKey);
+        $iv = \mb_substr(\hash('sha256', self::$secretIv), 0, 16);
+        $output = \openssl_encrypt($hash, self::$encryptMethod, $key, 0, $iv);
 
-        $iv = substr(hash('sha256', self::$secretIv), 0, 16);
-
-        $output = openssl_encrypt($hash, self::$encryptMethod, $key, 0, $iv);
-
-        return base64_encode($output);
+        return \base64_encode($output);
     }
 
     /**
@@ -39,83 +37,96 @@ class CryptoHelper
      */
     public static function decrypt(string $hash): string
     {
-        $key = hash('sha256', self::$secretKey);
-        $iv  = substr(hash('sha256', self::$secretIv), 0, 16);
+        $key = \hash('sha256', self::$secretKey);
+        $iv = \mb_substr(\hash('sha256', self::$secretIv), 0, 16);
 
-        return openssl_decrypt(base64_decode($hash), self::$encryptMethod, $key, 0, $iv) ?: '';
+        return \openssl_decrypt(\base64_decode($hash, true), self::$encryptMethod, $key, 0, $iv) ?: '';
     }
 
     /**
-     * Generate a strong password
+     * Generate a strong password.
      *
-     * @param  string  $hash
-     * @param  integer $splitBy
+     * @param string $hash
+     * @param int    $splitBy
+     *
      * @return string
      */
     public static function encryptStrong(string $hash, int $splitBy = 2): string
     {
-		// TO-DO: Send warning about spaces. It not allowed
-		$hash = StringHelper::hasSpaces($hash) ? StringHelper::withoutSpaces($hash) : $hash;
-		$length = strlen($hash);
-		
-        if ($length%2 !== 0) {
-			$splitBy = 3;
-		}
+        // TO-DO: Send warning about spaces. It not allowed
+        $hash = StringHelper::hasSpaces($hash) ? StringHelper::withoutSpaces($hash) : $hash;
+        $length = \mb_strlen($hash);
 
-		$splitedHash = str_split($hash, (int) round($length / $splitBy));
+        if (0 !== $length % 2) {
+            $splitBy = 3;
+        }
 
-        array_push($splitedHash, Carbon::now()->timestamp . '_');
+        $splitedHash = \str_split($hash, (int) \round($length / $splitBy));
+        $splitedHash[] = Carbon::now()->timestamp . '_';
+        $splitedHash = \array_reverse($splitedHash, true);
+        $base64 = \base64_encode(\implode('.', $splitedHash));
 
-		$splitedHash = array_reverse($splitedHash, true);
-		$base64 = base64_encode(join('.', $splitedHash));
-		$crypt = self::encrypt($base64);
+        return self::encrypt($base64);
+    }
 
-		return $crypt;
-	}
+    /**
+     * Decryp a strong password.
+     *
+     * @param [type] $hash
+     *
+     * @throws Exception
+     *
+     * @return string
+     */
+    public static function decryptStrong($hash): string
+    {
+        $hash = self::decrypt($hash);
+        $base64 = \base64_decode($hash, true);
+        $splitedHash = \explode('.', $base64);
+        $splitedHash = \array_reverse($splitedHash, true);
 
-	/**
-	 * Decryp a strong password 
-	 *
-	 * @param [type] $hash
-	 * @return string
-	 */
-	public static function decryptStrong($hash): string {
-		$hash  = self::decrypt($hash);
-		$base64 = base64_decode($hash);
-        $splitedHash = explode('.', $base64);
-		$splitedHash = array_reverse($splitedHash, true);
+        $timestamp = \str_replace('_', '', \array_pop($splitedHash));
 
-		$timestamp = str_replace('_', '', array_pop($splitedHash));
-
-        if(!self::isTimestamp($timestamp)) {
+        if (!StringHelper::isTimestamp($timestamp)) {
             throw new Exception('Password invalid');
-		}
+        }
 
-        return join('', $splitedHash);
-	}
+        return \implode('', $splitedHash);
+    }
 
-	/**
-	 * Check if is a valid timestamp
-	 *
-	 * @param int $timestamp
-	 * @return boolean
-	 */
-	private static function isTimestamp(int $timestamp): bool {
-		if (ctype_digit($timestamp) && strtotime(date('Y-m-d H:i:s', $timestamp)) === (int)$timestamp) {
-			return true;
-		} else {
-			return false;
-		}
-	}
+    /**
+     * Validate if a password and a "storage" hash are equivalent.
+     *
+     * @param string $password
+     * @param string $hash
+     *
+     * @throws Exception
+     *
+     * @return bool
+     */
+    public static function checkStrong(string $password, string $hash): bool
+    {
+        return self::decryptStrong($hash) === $password;
+    }
 
-	/**
-	 * Validate if a password and a "storage" hash are equivalent
-	 *
-	 * @param string $password
-	 * @param string $hash
-	 * @return boolean
-	 */
-	public static function checkStrong(string $password, string $hash): bool{
-        return $password === self::decryptStrong($hash);
-	}
+    /**
+     * Generate a digest value.
+     *
+     * @param        $value
+     * @param string $alg
+     * @param bool   $raw
+     *
+     * @return bool|string
+     */
+    public static function generateDigest($value, string $alg = 'sha512', bool $raw = true): ?string
+    {
+        if (StringHelper::endsWith($alg, '512')) {
+            $alg = 'sha512';
+        } elseif (StringHelper::endsWith($alg, '256')) {
+            $alg = 'sha256';
+        }
+
+        return \base64_encode(\hash($alg, \mb_convert_encoding($value, 'UTF-8'), $raw));
+//        return StringHelper::base64URLEncode(\hash($alg, \mb_convert_encoding($value, 'UTF-8'), $raw));
+    }
 }

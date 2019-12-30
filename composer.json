@@ -1,12 +1,12 @@
 {
-  "name": "mazecode/helpers",
+  "name": "siga98/siga-helpers",
   "description": "Custom Helpers Package",
   "type": "library",
   "license": "MIT",
   "authors": [
     {
-      "name": "Mazecode",
-      "email": "diego.feliud@gmail.com"
+      "name": "dfeliud",
+      "email": "dfeliu@siga98.net"
     }
   ],
   "version": "1.0.5",
@@ -23,7 +23,8 @@
   },
   "autoload": {
     "psr-4": {
-      "Siga98\\Helpers\\": "src/app/Helpers"
+      "Siga98\\Helpers\\": "src/app/Helpers",
+      "Siga98\\XMLLibs\\": "src/app/XMLLibs"
     },
     "files": [
       "src/helpers.php"
@@ -33,5 +34,10 @@
     "psr-4": {
       "Siga98\\Helpers\\Test\\": "src/tests/"
     }
+  },
+  "scripts": {
+    "post-update-cmd": [
+      "@composer dump-autoload -o"
+    ]
   }
 }
